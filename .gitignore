@@ -1,0 +1,8 @@
+/exp/PostExperiments/tf-logs/
+/exp/PostExperiments/videos/
+*.out
+*.pth
+.idea
+*.mp4
+*events.out.tfevents*
+

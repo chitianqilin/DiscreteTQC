@@ -1,0 +1,61 @@
+# 参考https://pytorch.org/rl/reference/generated/knowledge_base/MUJOCO_INSTALLATION.html
+
+# 联网
+export http_proxy=http://192.168.10.22:3128
+export https_proxy=http://192.168.10.22:3128
+
+# 载入conda
+module avail
+module load Anaconda/mini3-23.1.0
+
+# 新建虚拟环境，建议3.9以上。
+conda create -n mujoco_env python=3.9
+conda activate mujoco_env
+
+# 安装系列OpenGL相关的软件。为了避开超级用户权限，使用conda安装到虚拟环境中。
+conda install -c conda-forge glew
+conda install -c conda-forge mesalib
+conda install -c anaconda mesa-libgl-cos6-x86_64
+conda install -c menpo glfw3
+
+# 安装mujoco python版本的依赖。
+conda install fasteners 
+conda install cffi
+conda install "cython<3" # 版本号3以上会出问题
+conda install imageio
+conda install patchelf
+
+# 新建放置mujoco原版的文件夹
+mkdir ~/.mujoco
+cd ~/.mujoco
+
+# 下载以下文件，服务器外网不好用就复制粘贴
+wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz
+tar -xf mujoco210-linux-x86_64.tar.gz
+wget http://roboti.us/file/mjkey.txt
+
+# 配置mujoco原版路径的环境变量，需要使用conda虚拟环境进行，避免干扰原生环境
+conda env config vars set MJLIB_PATH=~/.mujoco/mujoco210/bin/libmujoco210.so \
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.mujoco/mujoco210/bin \
+MUJOCO_PY_MUJOCO_PATH=~/.mujoco/mujoco210
+
+# 建立libGL.so的软连接到mujoco的bin里，否则编译的时候会报cannot find -IGL的错
+ln -s ~/.conda/envs/mujoco_env/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib64/libGL.so.1 ~/.mujoco/mujoco210/bin/libGL.so
+
+# 配置mujoco的OpenGL渲染器，osmesa虽然是只支持cpu的，但是比egl好部署。glfw得用显示器。
+conda env config vars set MUJOCO_GL=osmesa PYOPENGL_PLATFORM=osmesa
+ 
+# 重新载入虚拟环境，激活新设置的环境变量
+conda deactivate && conda activate mujoco_env
+
+
+pip install mujoco # conda里面没有预编译好的mujoco，虽然用的时候还是得自己编译
+conda install gymnasium
+
+import gymnasium as gym
+env = gym.make('HalfCheetah-v4')
+observation,info =env.reset()
+action =env.action_space.sample()
+observation,reward, terminated,truncated, info= env.step(action)
+observation,info =env.reset()
+env.close()
